@@ -43,9 +43,12 @@ def main():
     scaleOptions = [scale for scale in scaleStructures.keys()]
     for i, option in enumerate(scaleOptions):
         print(f"{i+1}. {option.title()}?")
-    key = input().lower()
+    key = input(" ").lower()
     while key not in scaleStructures.keys():
-        key = input("Invalid. Which scale?\n1. Major\n2. Minor\n").lower()
+        print("Invalid.")
+        for i, option in enumerate(scaleOptions):
+            print(f"{i+1}. {option.title()}?")
+        key = input().lower()
 
     root = input("Enter the root of your scale: ").lower()
     while root not in startingNotes.keys():

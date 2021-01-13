@@ -3,6 +3,7 @@ import random
 from midiutil import MIDIFile
 
 POPULATION_SIZE = 10
+MAX_GENERATIONS = 1000
 MUTATION_RATE = 0.1
 
 # MIDI information will be encoded  by list of numbers corresponding to note codes
@@ -31,15 +32,15 @@ for i in "abcdefg":
     else:
         currentCode += 1
 
-smoothnessWeight = 10
+smoothnessWeight = 15
 rhythmWeight = 15
-
+harmonyWeight = 15
 
 
 def main():
     """ Main function for running all helper functions and handling user input """
     # User entering their preferences
-    print("Which scale?\n")
+    print("Which scale?")
     scaleOptions = [scale for scale in scaleStructures.keys()]
     for i, option in enumerate(scaleOptions):
         print(f"{i+1}. {option.title()}?")
@@ -63,7 +64,7 @@ def main():
 
     populationSize = POPULATION_SIZE
     population = generatePopulation(populationSize, scale)
-    maxFitness = 10
+    maxFitness = 20
 
     res = runEvolution(population, maxFitness, MUTATION_RATE, scale)
 
@@ -84,12 +85,12 @@ def buildScale(root, key):
     return [None] + scale
 
 def generatePopulation(n, scale):
-    """ Generate n  note sequences """
+    """ Generate n note sequences """
     population = [[[random.choice(scale) for x in range(16)] for y in range(8)] for z in range(n)]
     return population
 
 def fitnessFunction(genome):
-    """ Calculates fitness of a certain  sequence based on smoothness and rhythm """
+    """ Calculates fitness of a certain sequence based on smoothness and rhythm """
     # Workaround to bug: will fix later
     if flatten(genome) == genome:
         return 0
@@ -99,8 +100,9 @@ def fitnessFunction(genome):
     rhythmScore = 0
 
     harmonyScore = 0
-    # Table that assigns different values to different intervals (in semitones). Higher valued intervals will be picked more
-    harmonyWeightTable = {i: 10 * i for i in range(1,13)}
+    # Table that assigns different values to different intervals (in semitones). Higher valued intervals will be picked more. Currently the 3rd and 5th are valued the highest, and penalizes repeated notes, tritones and sevenths
+    harmonyIntervalsTable = {0 : -20, 1 : 5, 2 : 5, 3 : 50, 4 : 50, 5 : 30, 6 : -10, 7 : 50, 8 : 10, 9 : 40, 10 : -2, 11 : -2, 12 : 10,
+                             13 : -5, 14 : 5, 15 : 5, 16 : 50, 17 : 50, 18 : 30, 19 : -10, 20 : 50, 21 : 10, 22 : 40, 23 : -2, 24 : -2, 25 : 10}
 
     numRests = genome.count(None)
     consecutiveRests = 0
@@ -112,9 +114,13 @@ def fitnessFunction(genome):
             # We can only determine smoothness in melody if we aren't at the first note of the genome AND the preceding note isn't a rest
             if j != 0 and note is not None and bar[j-1] is not None:
                 prevNote = bar[j-1]
-                # ABSOLUTE SMOOTHNEsS CALCULATION
+                # ABSOLUTE SMOOTHNESS CALCULATION
                 # Calculate how many semitones away this note is from the previous one
                 noteDifference = abs(note - prevNote)
+
+                # Add corresponding harmony score based on interval
+                harmonyScore += harmonyIntervalsTable[noteDifference]
+
                 # Penalize for repeating notes
                 if not noteDifference:
                     smoothnessScore /= 10
@@ -143,9 +149,10 @@ def fitnessFunction(genome):
     if numRests * 10 <= len(flatten(genome)):
         rhythmScore += 10
 
+    penalty = 10
     # We don't want too many consecutive rests
     if consecutiveRests:
-        rhythmScore /= consecutiveRests
+        rhythmScore -= (consecutiveRests * penalty)
 
     # Apply corresponding weights to scores in order to favour different characteristics
     fitness = (smoothnessScore * smoothnessWeight) + (rhythmScore * rhythmWeight)
@@ -196,10 +203,11 @@ def mutateGenome(genome, mutationRate, scale):
 def runEvolution(population, maxFitness, mutationRate, scale):
     """ Runs genetic algorithm until a genome with the specified maxFitness score has been reached"""
     nextGeneration = []
+    generations = 0
     while True:
-
+        generations += 1
         population = sorted(population, key=lambda genome: [fitnessFunction(genome) for genome in population], reverse=True)
-        if fitnessFunction(population[0]) >= maxFitness:
+        if fitnessFunction(population[0]) >= maxFitness or generations == MAX_GENERATIONS:
             break
         nextGeneration = population[0:2]
         for i in range(int(len(population) / 2) - 1):
@@ -228,7 +236,7 @@ def writeMidiToDisk(sequence, filename="out", userTempo=60):
     midiFile.addTempo(track, time, tempo)
     fSequence = flatten(sequence)
     for pitch in fSequence:
-        duration = random.choice([0.5, 0.75,1])
+        duration = random.choice([0.5, 0.75, 1])
         if pitch is not None:
             midiFile.addNote(track, channel, pitch, time, duration, volume)
         timeInterval = random.choice([0.25, 0.5, 1])

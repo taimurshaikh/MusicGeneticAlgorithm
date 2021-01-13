@@ -3,6 +3,7 @@ import random
 from midiutil import MIDIFile
 
 POPULATION_SIZE = 10
+MUTATION_RATE = 0.1
 
 # MIDI information will be encoded  by list of numbers corresponding to note codes
 # Dictionary containing the patterns of tones and semitones that a given scale follows (this is for two octaves)
@@ -33,7 +34,7 @@ for i in "abcdefg":
 smoothnessWeight = 10
 rhythmWeight = 15
 
-mutationRate = 0.1
+
 
 def main():
     """ Main function for running all helper functions and handling user input """
@@ -61,7 +62,7 @@ def main():
     population = generatePopulation(populationSize, scale)
     maxFitness = 10
 
-    res = runEvolution(population, maxFitness, mutationRate, scale)
+    res = runEvolution(population, maxFitness, MUTATION_RATE, scale)
 
     for i in range(len(res)):
         writeMidiToDisk(res[i], f"out{i}.mid", tempo)

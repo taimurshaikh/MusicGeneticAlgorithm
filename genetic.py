@@ -2,8 +2,9 @@
 import random
 from midiutil import MIDIFile
 
-# MIDI information will be encoded  by list of numbers corresponding to note codes
+POPULATION_SIZE = 10
 
+# MIDI information will be encoded  by list of numbers corresponding to note codes
 # Dictionary containing the patterns of tones and semitones that a given scale follows (this is for two octaves)
 scaleStructures = {
     "major": [2,2,1,2,2,2,1] * 2,
@@ -56,9 +57,8 @@ def main():
 
     scale = buildScale(root, key)
 
-    populationSize = 10
+    populationSize = POPULATION_SIZE
     population = generatePopulation(populationSize, scale)
-    #print([x for x in population if x is None or isinstance(x, int)])
     maxFitness = 10
 
     res = runEvolution(population, maxFitness, mutationRate, scale)
@@ -80,12 +80,12 @@ def buildScale(root, key):
     return [None] + scale
 
 def generatePopulation(n, scale):
-    """ Generate n 8 bar note sequences """
+    """ Generate n  note sequences """
     population = [[[random.choice(scale) for x in range(16)] for y in range(8)] for z in range(n)]
     return population
 
 def fitnessFunction(genome):
-    """ Calculates fitness of a certain 8 bar sequence based on smoothness and rhythm """
+    """ Calculates fitness of a certain  sequence based on smoothness and rhythm """
     # Workaround to bug: will fix later
     if flatten(genome) == genome:
         return 0
@@ -148,12 +148,12 @@ def fitnessFunction(genome):
     return fitness
 
 def selectParents(population):
-    """ Selects two 8 bar sequences from the population. Probability of being selected is weighted by the fitness score of each sequence """
+    """ Selects two sequences from the population. Probability of being selected is weighted by the fitness score of each sequence """
     parentA, parentB = random.choices(population, weights=[fitnessFunction(genome) for genome in population], k=2)
     return parentA, parentB
 
 def crossoverFunction(parentA, parentB):
-    """ Performs single point crossover on two 8 bar sequences """
+    """ Performs single point crossover on two sequences """
     # Merge each sequence into one contiguous string of notes by flattening the 2D array
     noteStringA = flatten(parentA)
     noteStringB = flatten(parentB)
@@ -181,14 +181,12 @@ def crossoverFunction(parentA, parentB):
     return childA, childB
 
 def mutateGenome(genome, mutationRate, scale):
-    """ Mutates an 8 bar sequence according to a mutation probability """
+    """ Mutates an  sequence according to a mutation probability """
     for i, bar in enumerate(genome):
         for j, note in enumerate(bar):
             if random.uniform(0,1) <= mutationRate:
                 # Two types of mutation can occur, either the note is flipped to a rest or it is transposed an octave lower. 50/50 chance of either mutation happening
                 if random.uniform(0, 1) <= 0.5:
-                #    genome[i][j] = None if note is not None else random.choice(scale)
-            #    else:
                     genome[i][j] = note - 12 if note is not None else note
 
 def runEvolution(population, maxFitness, mutationRate, scale):

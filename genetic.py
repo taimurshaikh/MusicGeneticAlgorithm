@@ -3,8 +3,9 @@ import random
 from midiutil import MIDIFile
 
 POPULATION_SIZE = 10
-MAX_GENERATIONS = 1000
+MAX_GENERATIONS = 4
 MUTATION_RATE = 0.1
+MAX_FITNESS = 10
 
 # MIDI information will be encoded  by list of numbers corresponding to note codes
 # Dictionary containing the patterns of tones and semitones that a given scale follows (this is for two octaves)
@@ -44,29 +45,27 @@ def main():
     scaleOptions = [scale for scale in scaleStructures.keys()]
     for i, option in enumerate(scaleOptions):
         print(f"{i+1}. {option.title()}?")
-    key = input(" ").lower()
+    key = input(" ").lower().strip()
     while key not in scaleStructures.keys():
         print("Invalid.")
         for i, option in enumerate(scaleOptions):
             print(f"{i+1}. {option.title()}?")
-        key = input().lower()
+        key = input().lower().strip()
 
-    root = input("Enter the root of your scale: ").lower()
+    root = input("Enter the root of your scale: ").lower().strip()
     while root not in startingNotes.keys():
-        root = input("Invalid. Enter the root of your scale: ").lower()
+        root = input("Invalid. Enter the root of your scale: ").lower().strip()
 
-    tempo = input("Pick a tempo (integer) between 30 and 300 bpm: ")
+    tempo = input("Pick a tempo (integer) between 30 and 300 bpm: ").strip()
     while not isValidTempo(tempo):
-        tempo = input("Invalid. Pick a tempo (integer) between 30 and 300 bpm: ")
+        tempo = input("Invalid. Pick a tempo (integer) between 30 and 300 bpm: ").strip()
     tempo = int(tempo)
 
     scale = buildScale(root, key)
 
-    populationSize = POPULATION_SIZE
-    population = generatePopulation(populationSize, scale)
-    maxFitness = 20
+    population = generatePopulation(POPULATION_SIZE, scale)
 
-    res = runEvolution(population, maxFitness, MUTATION_RATE, scale)
+    res = runEvolution(population, MUTATION_RATE, MAX_FITNESS, scale)
 
     for i in range(len(res)):
         writeMidiToDisk(res[i], f"out{i}.mid", tempo)
@@ -86,14 +85,23 @@ def buildScale(root, key):
 
 def generatePopulation(n, scale):
     """ Generate n note sequences """
-    population = [[[random.choice(scale) for x in range(16)] for y in range(8)] for z in range(n)]
+    # population = [[[random.choice(scale) for x in range(16)] for y in range(8)] for z in range(n)]
+    # return population
+    population = []
+    for i in range(n):
+        population.append([])
+        for j in range(8):
+            population[i].append([])
+            for k in range(16):
+                population[i][j].append(random.choice(scale))
     return population
 
 def fitnessFunction(genome):
     """ Calculates fitness of a certain sequence based on smoothness and rhythm """
-    # Workaround to bug: will fix later
-    if flatten(genome) == genome:
-        return 0
+
+    # Workaround to really difficult to solve bug: will fix when I find what's causing it
+    if flatten(genome) == genome or genome is None:
+         return 0
 
     smoothnessScore = 0
 
@@ -188,7 +196,6 @@ def crossoverFunction(parentA, parentB):
         childB.append(childBFlat[start:end])
         start = end
         end += barLength
-
     return childA, childB
 
 def mutateGenome(genome, mutationRate, scale):
@@ -200,14 +207,14 @@ def mutateGenome(genome, mutationRate, scale):
                 if random.uniform(0, 1) <= 0.5:
                     genome[i][j] = note - 12 if note is not None else note
 
-def runEvolution(population, maxFitness, mutationRate, scale):
-    """ Runs genetic algorithm until a genome with the specified maxFitness score has been reached"""
+def runEvolution(population, mutationRate, maxFitness, scale):
+    """ Runs genetic algorithm until a genome with the specified MAX_FITNESS score has been reached"""
     nextGeneration = []
     generations = 0
     while True:
         generations += 1
         population = sorted(population, key=lambda genome: [fitnessFunction(genome) for genome in population], reverse=True)
-        if fitnessFunction(population[0]) >= maxFitness or generations == MAX_GENERATIONS:
+        if generations >= MAX_GENERATIONS or fitnessFunction(population[0]) >= maxFitness:
             break
         nextGeneration = population[0:2]
         for i in range(int(len(population) / 2) - 1):

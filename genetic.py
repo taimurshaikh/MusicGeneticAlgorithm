@@ -3,10 +3,9 @@ import random
 from midiutil import MIDIFile
 
 POPULATION_SIZE = 10
-MAX_GENERATIONS = 4
+MAX_GENERATIONS = 100
 MUTATION_RATE = 0.1
-MAX_FITNESS = 10
-
+MAX_FITNESS = 30
 # MIDI information will be encoded  by list of numbers corresponding to note codes
 # Dictionary containing the patterns of tones and semitones that a given scale follows (this is for two octaves)
 scaleStructures = {
@@ -42,10 +41,13 @@ def main():
     """ Main function for running all helper functions and handling user input """
     # User entering their preferences
     print("Which scale?")
+
     scaleOptions = [scale for scale in scaleStructures.keys()]
+
     for i, option in enumerate(scaleOptions):
         print(f"{i+1}. {option.title()}?")
     key = input(" ").lower().strip()
+
     while key not in scaleStructures.keys():
         print("Invalid.")
         for i, option in enumerate(scaleOptions):
@@ -62,17 +64,13 @@ def main():
     tempo = int(tempo)
 
     scale = buildScale(root, key)
-
-    population = generatePopulation(POPULATION_SIZE, scale)
-
-    res = runEvolution(population, MUTATION_RATE, MAX_FITNESS, scale)
+    res = runEvolution(MUTATION_RATE, scale)
 
     for i in range(len(res)):
         writeMidiToDisk(res[i], f"out{i}.mid", tempo)
 
 def buildScale(root, key):
     """ Builds scale based on passed in root and key by accessing pattern and starting note dictionaries """
-
     rootCode = startingNotes[root]
     scale = [rootCode]
     pattern = scaleStructures[key]
@@ -83,17 +81,13 @@ def buildScale(root, key):
         scale.append(currentCode)
     return [None] + scale
 
+def generateGenome(scale):
+    """ Generates one note sequence """
+    return [[random.choice(scale) for x in range(16)] for y in range(8)]
+
 def generatePopulation(n, scale):
     """ Generate n note sequences """
-    # population = [[[random.choice(scale) for x in range(16)] for y in range(8)] for z in range(n)]
-    # return population
-    population = []
-    for i in range(n):
-        population.append([])
-        for j in range(8):
-            population[i].append([])
-            for k in range(16):
-                population[i][j].append(random.choice(scale))
+    population = [generateGenome(scale) for x in range(n)]
     return population
 
 def fitnessFunction(genome):
@@ -177,8 +171,15 @@ def crossoverFunction(parentA, parentB):
     noteStringA = flatten(parentA)
     noteStringB = flatten(parentB)
 
+    if len(noteStringA) != len(noteStringB):
+        print("INVALID BRO")
+        raise ValueError
+    elif len(parentA) < 2:
+        print('A small bro')
+        return parentA, parentB
+
     # Pick random position of sequence to use as the single point
-    singlePoint = random.randint(1, len(parentA) - 1)
+    singlePoint = random.randint(1, len(noteStringA) - 1)
     # Perform crossover
     childAFlat = noteStringA[:singlePoint] + noteStringB[singlePoint:]
     childBFlat = noteStringB[:singlePoint] + noteStringA[singlePoint:]
@@ -203,30 +204,36 @@ def mutateGenome(genome, mutationRate, scale):
     for i, bar in enumerate(genome):
         for j, note in enumerate(bar):
             if random.uniform(0,1) <= mutationRate:
-                # Two types of mutation can occur, either the note is flipped to a rest or it is transposed an octave lower. 50/50 chance of either mutation happening
-                if random.uniform(0, 1) <= 0.5:
-                    genome[i][j] = note - 12 if note is not None else note
+                    genome[i][j] = None if note is not None else random.choice(scale)
+    return genome
 
-def runEvolution(population, mutationRate, maxFitness, scale):
+def runEvolution(mutationRate, scale):
     """ Runs genetic algorithm until a genome with the specified MAX_FITNESS score has been reached"""
+
+    population = generatePopulation(POPULATION_SIZE, scale)
+
     nextGeneration = []
     generations = 0
-    while True:
-        generations += 1
-        population = sorted(population, key=lambda genome: [fitnessFunction(genome) for genome in population], reverse=True)
-        if generations >= MAX_GENERATIONS or fitnessFunction(population[0]) >= maxFitness:
-            break
+    for i in range(MAX_GENERATIONS):
+
+        population = sorted(population, key=lambda genome: fitnessFunction(genome), reverse=True)
+
         nextGeneration = population[0:2]
-        for i in range(int(len(population) / 2) - 1):
+
+        for j in range(int(len(population) / 2) - 1):
             parentA, parentB = selectParents(population)
             childA, childB = crossoverFunction(parentA, parentB)
-            mutateGenome(childA, mutationRate, scale)
-            mutateGenome(childB, mutationRate, scale)
-            nextGeneration += childA
-            nextGeneration += childB
-        population = nextGeneration
 
-    population = sorted(population, key=lambda genome: [fitnessFunction(genome) for genome in population], reverse=True)
+            childA = mutateGenome(childA, mutationRate, scale)
+            childB = mutateGenome(childB, mutationRate, scale)
+
+            nextGeneration += [childA, childB]
+
+        population = nextGeneration
+        generations += 1
+
+    population = sorted(population, key=lambda genome: fitnessFunction(genome), reverse=True)
+    print(generations)
     return population
 
 def writeMidiToDisk(sequence, filename="out", userTempo=60):

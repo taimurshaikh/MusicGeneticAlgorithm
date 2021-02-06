@@ -93,10 +93,6 @@ def generatePopulation(n, scale):
 def fitnessFunction(genome):
     """ Calculates fitness of a certain sequence based on smoothness and rhythm """
 
-    # Workaround to really difficult to solve bug: will fix when I find what's causing it
-    if flatten(genome) == genome or genome is None:
-         return 0
-
     smoothnessScore = 0
 
     rhythmScore = 0
@@ -172,10 +168,8 @@ def crossoverFunction(parentA, parentB):
     noteStringB = flatten(parentB)
 
     if len(noteStringA) != len(noteStringB):
-        print("INVALID BRO")
         raise ValueError
     elif len(parentA) < 2:
-        print('A small bro')
         return parentA, parentB
 
     # Pick random position of sequence to use as the single point
@@ -233,7 +227,6 @@ def runEvolution(mutationRate, scale):
         generations += 1
 
     population = sorted(population, key=lambda genome: fitnessFunction(genome), reverse=True)
-    print(generations)
     return population
 
 def writeMidiToDisk(sequence, filename="out", userTempo=60):

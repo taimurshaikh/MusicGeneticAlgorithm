@@ -4,37 +4,38 @@ from midiutil import MIDIFile
 
 POPULATION_SIZE = 10
 MAX_GENERATIONS = 100
-MUTATION_RATE = 0.1
+MUTATION_RATE = 0.05
 MAX_FITNESS = 30
-# MIDI information will be encoded  by list of numbers corresponding to note codes
+
+# MIDI information will be encoded by list of numbers corresponding to note codes
 # Dictionary containing the patterns of tones and semitones that a given scale follows (this is for two octaves)
 scaleStructures = {
-    "major": [2,2,1,2,2,2,1] * 2,
-    "minor": [2,1,2,2,1,2,2] * 2,
+    "major": [2, 2, 1, 2, 2, 2, 1] * 2,
+    "minor": [2, 1, 2, 2, 1, 2, 2] * 2,
     "major pentatonic": [2, 2, 3, 2, 3] * 2,
     "minor pentatonic": [3, 2, 2, 3, 2] * 2,
     }
 
 # Dictionary containing the MIDI code for every note starting from A below middle C
-startingNotes = {}
+scales = {}
 a3 = 45
 currentCode = a3
 for i in "abcdefg":
-    startingNotes[i] = currentCode
+    scales[i] = currentCode
     # B and E do not have sharps so skip them for this part
     if i != "b" and i != "e":
-        startingNotes[f"{i}#"] = currentCode + 1
+        scales[f"{i}#"] = currentCode + 1
         currentCode += 2
     # C and F do not have flats so skip them for this part
     if i != "c" and i != "f":
-        startingNotes[f"{i}b"] = currentCode - 1
+        scales[f"{i}b"] = currentCode - 1
         currentCode += 2
     else:
         currentCode += 1
 
 smoothnessWeight = 15
-rhythmWeight = 15
-harmonyWeight = 15
+rhythmWeight = 5
+harmonyWeight = 20
 
 
 def main():
@@ -55,7 +56,7 @@ def main():
         key = input().lower().strip()
 
     root = input("Enter the root of your scale: ").lower().strip()
-    while root not in startingNotes.keys():
+    while root not in scales.keys():
         root = input("Invalid. Enter the root of your scale: ").lower().strip()
 
     tempo = input("Pick a tempo (integer) between 30 and 300 bpm: ").strip()
@@ -71,7 +72,7 @@ def main():
 
 def buildScale(root, key):
     """ Builds scale based on passed in root and key by accessing pattern and starting note dictionaries """
-    rootCode = startingNotes[root]
+    rootCode = scales[root]
     scale = [rootCode]
     pattern = scaleStructures[key]
     currentCode = rootCode
@@ -153,7 +154,7 @@ def fitnessFunction(genome):
         rhythmScore -= (consecutiveRests * penalty)
 
     # Apply corresponding weights to scores in order to favour different characteristics
-    fitness = (smoothnessScore * smoothnessWeight) + (rhythmScore * rhythmWeight)
+    fitness = (smoothnessScore * smoothnessWeight) + (rhythmScore * rhythmWeight) + (harmonyScore * harmonyWeight)
     return fitness
 
 def selectParents(population):

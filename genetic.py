@@ -33,11 +33,6 @@ for i in "abcdefg":
     else:
         currentCode += 1
 
-smoothnessWeight = 15
-rhythmWeight = 5
-harmonyWeight = 20
-
-
 def main():
     """ Main function for running all helper functions and handling user input """
     # User entering their preferences
@@ -80,7 +75,7 @@ def buildScale(root, key):
     for i, j in enumerate(pattern):
         currentCode += j
         scale.append(currentCode)
-    return [None] + scale
+    return scale
 
 def generateGenome(scale):
     """ Generates one note sequence """
@@ -94,11 +89,14 @@ def generatePopulation(n, scale):
 def fitnessFunction(genome):
     """ Calculates fitness of a certain sequence based on smoothness and rhythm """
 
+    smoothnessWeight = 15
+    rhythmWeight = 5
+    harmonyWeight = 20
+
     smoothnessScore = 0
-
     rhythmScore = 0
-
     harmonyScore = 0
+
     # Table that assigns different values to different intervals (in semitones). Higher valued intervals will be picked more. Currently the 3rd and 5th are valued the highest, and penalizes repeated notes, tritones and sevenths
     harmonyIntervalsTable = {0 : -20, 1 : 5, 2 : 5, 3 : 50, 4 : 50, 5 : 30, 6 : -10, 7 : 50, 8 : 10, 9 : 40, 10 : -2, 11 : -2, 12 : 10,
                              13 : -5, 14 : 5, 15 : 5, 16 : 50, 17 : 50, 18 : 30, 19 : -10, 20 : 50, 21 : 10, 22 : 40, 23 : -2, 24 : -2, 25 : 10}
@@ -208,7 +206,6 @@ def runEvolution(mutationRate, scale):
     population = generatePopulation(POPULATION_SIZE, scale)
 
     nextGeneration = []
-    generations = 0
     for i in range(MAX_GENERATIONS):
 
         population = sorted(population, key=lambda genome: fitnessFunction(genome), reverse=True)
@@ -225,7 +222,6 @@ def runEvolution(mutationRate, scale):
             nextGeneration += [childA, childB]
 
         population = nextGeneration
-        generations += 1
 
     population = sorted(population, key=lambda genome: fitnessFunction(genome), reverse=True)
     return population
@@ -250,8 +246,6 @@ def writeMidiToDisk(sequence, filename="out", userTempo=60):
         timeInterval = random.choice([0.25, 0.5, 1])
         time += timeInterval
 
-    with open(filename, "wb") as f:
-        midiFile.writeFile(f)
 
 def flatten(arr):
     """ Flattens a 2D array into a 1D array """

@@ -63,7 +63,7 @@ def main():
     res = runEvolution(MUTATION_RATE, scale)
 
     for i in range(len(res)):
-        writeMidiToDisk(res[i], f"out{i}.mid", tempo)
+        writeMidiToDisk(res[i], f"./out{i}.mid", tempo)
 
 def buildScale(root, key):
     """ Builds scale based on passed in root and key by accessing pattern and starting note dictionaries """
